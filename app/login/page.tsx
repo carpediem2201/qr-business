@@ -3,6 +3,8 @@
 
 'use client' // Esto indica que es un componente de cliente (usa estado, eventos, navegador)
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'

@@ -73,12 +73,12 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen p-8">
+    <main className="min-h-screen p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
         
         {/* Cabecera: email del usuario y botón de salir */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Mis tarjetas</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Mis tarjetas</h1>
           <div className="flex gap-3 items-center">
             <span className="text-sm text-gray-500">{user?.email}</span>
             <button
@@ -103,26 +103,30 @@ export default function Dashboard() {
           </div>
         ) : (
           /* Si tiene tarjetas, mostrarlas en lista */
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {cards.map((card) => (
               <div
                 key={card.id}
-                className="border rounded-lg p-4 flex justify-between items-center hover:bg-gray-50"
+                onClick={() => router.push(`/dashboard/${card.id}`)}
+                className="border rounded-lg p-4 flex justify-between items-center hover:bg-gray-50 cursor-pointer transition-colors"
               >
                 <div>
                   <h2 className="font-semibold">{card.name}</h2>
-                  <p className="text-sm text-gray-500">{card.destination_url}</p>
+                  <p className="text-sm text-gray-500 truncate max-w-[300px]">{card.destination_url}</p>
                 </div>
-                <span className="text-xs text-gray-400">
-                  {new Date(card.created_at).toLocaleDateString('es-ES')}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400">
+                    {new Date(card.created_at).toLocaleDateString('es-ES')}
+                  </span>
+                  <span className="text-gray-400">→</span>
+                </div>
               </div>
             ))}
             
             {/* Botón para crear nueva tarjeta */}
             <Link
               href="/dashboard/crear"
-              className="block text-center px-6 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-500 text-gray-500 hover:text-gray-700"
+              className="block text-center px-6 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-500 text-gray-500 hover:text-gray-700 transition-colors"
             >
               + Nueva tarjeta
             </Link>

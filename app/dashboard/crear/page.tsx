@@ -4,7 +4,7 @@
 
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '@/lib/supabase'
@@ -14,10 +14,11 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2 MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const ALLOWED_EXTENSIONS = '.jpg, .jpeg, .png, .webp'
 
-export default function CrearTarjeta() {
+// Componente interno con toda la lógica
+function CrearTarjetaContenido() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const editId = searchParams.get('edit')  // Si viene de "Editar", tendrá un ID
+  const editId = searchParams.get('edit')
   const [editMode, setEditMode] = useState(false)
 
   // Estados para los datos de la tarjeta
@@ -81,7 +82,6 @@ export default function CrearTarjeta() {
     return null
   }
 
-  // Convierte un archivo a URL de datos (base64)
   const fileToDataUrl = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader()
@@ -90,7 +90,6 @@ export default function CrearTarjeta() {
     })
   }
 
-  // Manejar subida de imagen de fondo
   const handleBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -104,7 +103,6 @@ export default function CrearTarjeta() {
     setBgImage(url)
   }
 
-  // Manejar subida de logo
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -118,7 +116,6 @@ export default function CrearTarjeta() {
     setLogo(url)
   }
 
-  // Clases CSS para la posición del logo (fuera del QR)
   const getLogoPositionClasses = () => {
     switch (logoPosition) {
       case 'top-left': return 'top-2 left-2'
@@ -129,7 +126,6 @@ export default function CrearTarjeta() {
     }
   }
 
-  // Clases CSS para la posición del QR en esquinas
   const getQrCornerClasses = () => {
     switch (qrPosition) {
       case 'top-left': return 'top-2 left-2'
@@ -140,7 +136,6 @@ export default function CrearTarjeta() {
     }
   }
   
-  // ─── Guardar o actualizar tarjeta en Supabase ───
   const handleSave = async () => {
     setErrorMsg('')
 
@@ -179,14 +174,12 @@ export default function CrearTarjeta() {
     let error = null
 
     if (editMode && editId) {
-      // Actualizar tarjeta existente
       const { error: updateError } = await supabase
         .from('cards')
         .update(cardData)
         .eq('id', editId)
       error = updateError
     } else {
-      // Crear nueva tarjeta
       const { error: insertError } = await supabase
         .from('cards')
         .insert(cardData)
@@ -215,124 +208,62 @@ export default function CrearTarjeta() {
           {/* ─── COLUMNA IZQUIERDA: Controles ─── */}
           <div className="space-y-3">
             
-            {/* Fila 1: Nombre + Color texto */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">Nombre</label>
-                <input
-                  type="text"
-                  placeholder="Ej: Tarjeta Cafetería"
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                />
+                <input type="text" placeholder="Ej: Tarjeta Cafetería" value={cardName} onChange={(e) => setCardName(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Color texto</label>
                 <div className="flex gap-2 items-center">
-                  <input
-                    type="color"
-                    value={textColor}
-                    onChange={(e) => setTextColor(e.target.value)}
-                    className="w-9 h-9 border rounded cursor-pointer"
-                  />
+                  <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} className="w-9 h-9 border rounded cursor-pointer" />
                   <span className="text-xs text-gray-500">{textColor}</span>
                 </div>
               </div>
             </div>
 
-            {/* Fila 2: Texto de la tarjeta */}
             <div>
               <label className="block text-sm font-medium mb-1">Texto en la tarjeta</label>
-              <input
-                type="text"
-                placeholder="Ej: Escanea y descubre..."
-                value={cardText}
-                onChange={(e) => setCardText(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg text-sm"
-              />
+              <input type="text" placeholder="Ej: Escanea y descubre..." value={cardText} onChange={(e) => setCardText(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" />
             </div>
 
-            {/* Fila 3: Imagen de fondo + Color de fondo */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">Imagen de fondo</label>
-                <input
-                  type="file"
-                  accept={ALLOWED_EXTENSIONS}
-                  onChange={handleBgUpload}
-                  ref={bgInputRef}
-                  className="hidden"
-                  id="bgInput"
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('bgInput')?.click()}
-                  className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 text-gray-600 hover:text-gray-800 flex items-center justify-center gap-1 text-sm"
-                >
+                <input type="file" accept={ALLOWED_EXTENSIONS} onChange={handleBgUpload} ref={bgInputRef} className="hidden" id="bgInput" />
+                <button type="button" onClick={() => document.getElementById('bgInput')?.click()} className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 text-gray-600 hover:text-gray-800 flex items-center justify-center gap-1 text-sm">
                   <span className="text-base">🖼️</span> Fondo
                 </button>
                 {bgImage && (
-                  <button
-                    onClick={() => { setBgImage(null); if (bgInputRef.current) bgInputRef.current.value = '' }}
-                    className="text-xs text-red-500 mt-1"
-                  >
-                    Quitar
-                  </button>
+                  <button onClick={() => { setBgImage(null); if (bgInputRef.current) bgInputRef.current.value = '' }} className="text-xs text-red-500 mt-1">Quitar</button>
                 )}
               </div>
               {!bgImage && (
                 <div>
                   <label className="block text-sm font-medium mb-1">Color fondo</label>
                   <div className="flex gap-2 items-center">
-                    <input
-                      type="color"
-                      value={backgroundColor}
-                      onChange={(e) => setBackgroundColor(e.target.value)}
-                      className="w-9 h-9 border rounded cursor-pointer"
-                    />
+                    <input type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="w-9 h-9 border rounded cursor-pointer" />
                     <span className="text-xs text-gray-500">{backgroundColor}</span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Fila 4: Logo + Posición logo */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">Logo</label>
-                <input
-                  type="file"
-                  accept={ALLOWED_EXTENSIONS}
-                  onChange={handleLogoUpload}
-                  ref={logoInputRef}
-                  className="hidden"
-                  id="logoInput"
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('logoInput')?.click()}
-                  className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 text-gray-600 hover:text-gray-800 flex items-center justify-center gap-1 text-sm"
-                >
+                <input type="file" accept={ALLOWED_EXTENSIONS} onChange={handleLogoUpload} ref={logoInputRef} className="hidden" id="logoInput" />
+                <button type="button" onClick={() => document.getElementById('logoInput')?.click()} className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 text-gray-600 hover:text-gray-800 flex items-center justify-center gap-1 text-sm">
                   <span className="text-base">📁</span> Logo
                 </button>
                 {logo && (
-                  <button
-                    onClick={() => { setLogo(null); if (logoInputRef.current) logoInputRef.current.value = '' }}
-                    className="text-xs text-red-500 mt-1"
-                  >
-                    Quitar
-                  </button>
+                  <button onClick={() => { setLogo(null); if (logoInputRef.current) logoInputRef.current.value = '' }} className="text-xs text-red-500 mt-1">Quitar</button>
                 )}
               </div>
               {logo && (
                 <div>
                   <label className="block text-sm font-medium mb-1">Posición logo</label>
-                  <select
-                    value={logoPosition}
-                    onChange={(e) => setLogoPosition(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                  >
+                  <select value={logoPosition} onChange={(e) => setLogoPosition(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="dentro-qr">Dentro del QR</option>
                     <option value="top-left">↖ Arriba izq.</option>
                     <option value="top-right">↗ Arriba der.</option>
@@ -343,15 +274,10 @@ export default function CrearTarjeta() {
               )}
             </div>
 
-            {/* Fila 5: Posición QR + URL */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">Posición QR</label>
-                <select
-                  value={qrPosition}
-                  onChange={(e) => setQrPosition(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                >
+                <select value={qrPosition} onChange={(e) => setQrPosition(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm">
                   <option value="center">Centro</option>
                   <option value="top-left">↖ Arriba izq.</option>
                   <option value="top-right">↗ Arriba der.</option>
@@ -361,34 +287,17 @@ export default function CrearTarjeta() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">URL destino</label>
-                <input
-                  type="url"
-                  placeholder="https://..."
-                  value={qrUrl}
-                  onChange={(e) => setQrUrl(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                />
+                <input type="url" placeholder="https://..." value={qrUrl} onChange={(e) => setQrUrl(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" />
               </div>
             </div>
 
-            {/* Info formatos */}
-            <p className="text-xs text-gray-400">
-              Formatos: {ALLOWED_EXTENSIONS} · Máx. 2 MB por imagen
-            </p>
+            <p className="text-xs text-gray-400">Formatos: {ALLOWED_EXTENSIONS} · Máx. 2 MB por imagen</p>
 
-            {/* Mensaje de error */}
             {errorMsg && (
-              <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-3 py-2">
-                {errorMsg}
-              </div>
+              <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-3 py-2">{errorMsg}</div>
             )}
 
-            {/* Botón guardar */}
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full px-4 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-            >
+            <button onClick={handleSave} disabled={saving} className="w-full px-4 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium">
               {saving ? 'Guardando...' : editMode ? 'Actualizar tarjeta' : 'Guardar tarjeta'}
             </button>
 
@@ -398,7 +307,6 @@ export default function CrearTarjeta() {
           <div className="flex flex-col items-center justify-start">
             <p className="text-sm text-gray-500 mb-3">Previsualización</p>
             
-            {/* Tarjeta */}
             <div
               className="w-[300px] h-[194px] md:w-[340px] md:h-[220px] rounded-xl shadow-lg border relative overflow-hidden"
               style={{
@@ -409,29 +317,15 @@ export default function CrearTarjeta() {
                 color: textColor,
               }}
             >
-              {/* Capa semitransparente sobre imagen de fondo */}
-              {bgImage && (
-                <div className="absolute inset-0 bg-black/20 z-0"></div>
-              )}
+              {bgImage && <div className="absolute inset-0 bg-black/20 z-0"></div>}
 
-              {/* Logo en esquina (fuera del QR) */}
               {logo && logoPosition !== 'dentro-qr' && (
-                <img
-                  src={logo}
-                  alt="Logo"
-                  className={`absolute z-20 max-h-8 max-w-[60px] md:max-h-10 md:max-w-[80px] object-contain ${getLogoPositionClasses()}`}
-                />
+                <img src={logo} alt="Logo" className={`absolute z-20 max-h-8 max-w-[60px] md:max-h-10 md:max-w-[80px] object-contain ${getLogoPositionClasses()}`} />
               )}
 
-              {/* ─── QR CENTRADO ─── */}
               {qrPosition === 'center' && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10 px-4">
-                  {cardText ? (
-                    <p className="text-center font-medium text-sm">{cardText}</p>
-                  ) : (
-                    <p className="text-center text-gray-400 text-sm">Tu texto aquí</p>
-                  )}
-                  
+                  {cardText ? <p className="text-center font-medium text-sm">{cardText}</p> : <p className="text-center text-gray-400 text-sm">Tu texto aquí</p>}
                   {qrUrl ? (
                     <div className="bg-white p-1 rounded relative inline-block">
                       <QRCodeSVG value={qrUrl} size={50} />
@@ -445,25 +339,17 @@ export default function CrearTarjeta() {
                     </div>
                   ) : (
                     <div className="bg-white p-1 rounded inline-block">
-                      <div className="w-[50px] h-[50px] bg-gray-200 rounded flex items-center justify-center">
-                        <span className="text-xs text-gray-400">QR</span>
-                      </div>
+                      <div className="w-[50px] h-[50px] bg-gray-200 rounded flex items-center justify-center"><span className="text-xs text-gray-400">QR</span></div>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* ─── QR EN ESQUINA ─── */}
               {qrPosition !== 'center' && (
                 <>
                   <div className="absolute inset-0 flex items-center justify-center z-10 px-10">
-                    {cardText ? (
-                      <p className="text-center font-medium text-sm">{cardText}</p>
-                    ) : (
-                      <p className="text-center text-gray-400 text-sm">Tu texto aquí</p>
-                    )}
+                    {cardText ? <p className="text-center font-medium text-sm">{cardText}</p> : <p className="text-center text-gray-400 text-sm">Tu texto aquí</p>}
                   </div>
-
                   <div className={`absolute z-10 ${getQrCornerClasses()}`}>
                     {qrUrl ? (
                       <div className="bg-white p-1 rounded relative inline-block">
@@ -478,9 +364,7 @@ export default function CrearTarjeta() {
                       </div>
                     ) : (
                       <div className="bg-white p-1 rounded inline-block">
-                        <div className="w-[50px] h-[50px] bg-gray-200 rounded flex items-center justify-center">
-                          <span className="text-xs text-gray-400">QR</span>
-                        </div>
+                        <div className="w-[50px] h-[50px] bg-gray-200 rounded flex items-center justify-center"><span className="text-xs text-gray-400">QR</span></div>
                       </div>
                     )}
                   </div>
@@ -488,13 +372,24 @@ export default function CrearTarjeta() {
               )}
             </div>
 
-            {cardName && (
-              <p className="mt-2 text-sm font-medium text-gray-700">{cardName}</p>
-            )}
+            {cardName && <p className="mt-2 text-sm font-medium text-gray-700">{cardName}</p>}
           </div>
 
         </div>
       </div>
     </main>
+  )
+}
+
+// Componente exportado que envuelve con Suspense (necesario por useSearchParams)
+export default function CrearTarjeta() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Cargando...</p>
+      </main>
+    }>
+      <CrearTarjetaContenido />
+    </Suspense>
   )
 }
